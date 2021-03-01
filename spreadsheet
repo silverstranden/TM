@@ -1,0 +1,177 @@
+const ss = SpreadsheetApp.getActive().getSheetByName("Dagsförsäljning");
+
+function onOpen(){
+  menu()
+    
+  var version = "V 6 beta",
+      docVersion = ss.getRange(defRange.version).getValue(),
+      store = ss.getRange(defRange.store).getValue();
+  
+  ss.getRange("version").setValue(version)
+  SpreadsheetApp.getActive().rename('Försäljning ' + store + ' ' + version)
+}
+function menu(){
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu("Dagsavslut")
+  .addItem('Dagsavslut', 'endDay')
+  .addToUi()
+}
+function onEdit(event) {
+    var ss = event.source.getSheetByName("Dagsförsäljning"),
+        ssActive = SpreadsheetApp.getActive(),
+        actRng = event.source.getActiveRange(),
+        rIndex = actRng.getRowIndex(),
+        cIndex = actRng.getColumnIndex(),
+        cell = actRng.getCell(1,1),
+        orderC = [2,7,12,17,22],
+        cashC = [2,4,7,9,12,14,17,19,22,24],
+        order;
+    
+    if (ss.getSheetId() == ssActive.getSheetId() && !(cell.isBlank())){
+        if (rIndex > 17 && rIndex < 41 && cIndex < 27 || rIndex > 46 && rIndex < 101 && cIndex < 27){
+          event.range.getSheet().showRows(rIndex+1,2);
+        }
+      if((cashC.indexOf(cIndex) || cashC.indexOf(cIndex)+1)&&rIndex<102&&rIndex>5&&rIndex!=41){formatBorder(cell)}
+      if(orderC.indexOf(cIndex)+1 && (rIndex > 5 && rIndex < 41)){
+        order = actRng.getValue().toUpperCase();
+        cell.setValue('=HYPERLINK("http://dashboard.trademax.se/sales_orders/' + order + '";"' + order + '")');
+      } else if (cashC.indexOf(cIndex)+1 && (rIndex > 41 && rIndex < 102)){
+        order = actRng.getValue().toUpperCase();
+        cell.setValue('=HYPERLINK("http://dashboard.trademax.se/sales_orders/' + order + '";"' + order + '")');
+      }
+    }
+  }
+  
+
+const range = { 
+  order: "Dagsförsäljning!B6:AA40",
+  cc: "Dagsförsäljning!B42:AA101",
+  
+  s1: "Dagsförsäljning!D3",
+  sb1: "Dagsförsäljning!E4",
+  s2: "Dagsförsäljning!I3",
+  sb2: "Dagsförsäljning!J4",
+  s3: "Dagsförsäljning!N3",
+  sb3: "Dagsförsäljning!O4",
+  s4: "Dagsförsäljning!S3",
+  sb4: "Dagsförsäljning!T4",
+  s5: "Dagsförsäljning!X3",
+  sb5: "Dagsförsäljning!Y4"
+  };
+
+const defRange = {
+  sheet: "'Dagsförsäljning'!A1:AE107",
+  name: "Inställningar!B1",
+  version: "Inställningar!B2",
+  names: "Inställningar!B3:I3",
+  current: "'Inställningar'!B5",
+  second: "'Inställningar'!B6",
+  delete: "'Inställningar'!B7",
+  soldTdy: "'Dagsförsäljning'!N2",
+  budgetRow: "'Inställningar'!B8",
+  version: "'Inställningar'!B2",
+  store: "'Inställningar'!B1"
+  };
+
+function logSales() {
+  var ss = SpreadsheetApp.getActive().getSheetByName("Dagsförsäljning"),
+      lrs = ss.getRange("sales!A1").lastRow();
+  
+  for (var x = 4; !ss.getRange(x+6).isBlank(); x ++){
+    for (var y = 6; !ss.getRange(x+y).isBlank(); y ++){
+      ss.getRange(x,y);
+      ss.getRange(LRS).setValue(ss.getRange("sales!A1").lastRow())
+    }
+  }
+}
+function endDay() {
+  var columns = [1,6,11,16,21,26,28],
+      orderColumns = [2,3,4,5,7,8,9,10,12,13,14,15,17,18,19,20,22,23,24,25,27,29],
+      shC = ss.getRange(defRange.current).getValue(),
+      shS = ss.getRange(defRange.second).getValue(),
+      shD = ss.getRange(defRange.delete).getValue(),
+      shActive = SpreadsheetApp.getActive();
+  
+  var now = new Date(),
+      year = now.getFullYear(),
+      budYear = SpreadsheetApp.getActive().getSheetByName('Budget ' + year),
+      date = Utilities.formatDate(new Date(), "GMT+1", "yyyy-MM-dd"),
+      yesterday = (now - (1000 * 60 * 60 * 24)),
+      total = ss.getRange(defRange.soldTdy).getValue();
+  
+  var budgetDate;
+  var ssb = SpreadsheetApp.getActive().getSheetByName('Budget ' + year);
+  var budget = ssb.getRange("'Budget "+ year +"'!B1:F");
+  
+  var budgetRow = ssb.getRange(defRange.budgetRow).getValue();
+  
+  ssb.getRange("E"+budgetRow).setValue(total); 
+  
+  if (ssb.getRange("E"+(budgetRow-1)).isBlank()){
+        var ui = SpreadsheetApp.getUi();
+        var response = ui.alert('Gäller denna försäljningen för dagen innan?', ui.ButtonSet.YES_NO);
+        if (response == ui.Button.YES){
+          ui.alert('Försäljningen satt för ' + yesterday)
+          ssb.getRange("E"+(budgetRow-1)).setValue(total)
+          SpreadsheetApp.getActive().getSheetByName(ss.getRange(defRange.current).getValue()).getRange(2, 15).setValue(yesterday)
+          ssb.getRange("E"+budgetRow).clearContent();}
+  }
+  //Checks and creates sheets for correct quarter
+  if (shActive.getSheetByName(shC) == null){
+    makeSheet(shC,"#00ff00")
+    if (shActive.getSheetByName(shS)!=null) {
+      makeSheet(shS,"#ffff00")
+    }
+    if (shActive.getSheetByName(ss.getRange(defRange.delete).getValue()) != null) {
+      shActive.deleteSheet(shD);
+    }
+  }
+  
+  var cs = shActive.getSheetByName(shC);
+  cs.insertRowBefore(1);
+  cs.getRange("A1:1").setBackground("#ffffff")
+  cs.insertRowsBefore(1,107);
+  copy(defRange.sheet,cs.getRange(1,1));
+  
+  
+  // --- Start formatting for tomorrow ---
+  for(var key in columns) {
+    cs.setColumnWidth(columns[key],10);
+  }
+  for(var key in orderColumns) {
+    cs.setColumnWidth(orderColumns[key],80);
+  }
+  
+  //ready for tomorrow
+  ss.hideRows(19,22)
+  ss.hideRows(49,53)
+  ss.hideColumns(22,5)
+  cs.hideRows(19,22)
+  cs.hideRows(49,53)
+  cs.hideColumns(22,5)
+  
+  //clears content
+  for(var key in range) {
+    ss.getRange(range[key]).clearContent()}
+  
+  const formatCells = ["'Dagsförsäljning'!B6:E40","'Dagsförsäljning'!G6:J40","Dagsförsäljning!L6:O40","Dagsförsäljning!Q6:T40","Dagsförsäljning!V6:Y40","Dagsförsäljning!AA6:AA40",
+                     "Dagsförsäljning!B42:E101","Dagsförsäljning!G42:J101","Dagsförsäljning!L42:O101","Dagsförsäljning!Q42:T101","Dagsförsäljning!V42:Y101","Dagsförsäljning!AA42:AA101"];
+  formatBorder(formatCells)}
+
+function copy(name, range) {
+   SpreadsheetApp.getActiveSpreadsheet().getRange(name).copyTo(range, {formatsOnly:true});
+   SpreadsheetApp.getActiveSpreadsheet().getRange(name).copyTo(range, {contentsOnly:true});}
+
+function makeSheet(sheetName, color){
+  var ss = SpreadsheetApp.getActive(),
+      sheet = ss.getSheetByName(sheetName);
+  
+  if (sheet == null){
+    sheet = ss.insertSheet()
+    sheet.setName(sheetName)}
+  sheet.setTabColor(color)}
+
+function formatBorder(a1){
+  if(Array.isArray(a1)){  a1.forEach(function myFunction(item) {
+    ss.getRange(item).setFontColor("black").setFontFamily("lato").setFontSize(12).setBorder(true, true, true, true, true, true).setBackground("#fce5cd").setFontWeight("normal")
+  })} else {a1.setFontColor("black").setFontFamily("lato").setFontSize(12).setBorder(true, true, true, true, true, true).setBackground("#fce5cd").setFontWeight("normal")}}
